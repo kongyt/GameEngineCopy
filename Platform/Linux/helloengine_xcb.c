@@ -43,7 +43,7 @@ int main(void){
     
     // create window
     window = xcb_generate_id(pConn);
-    mask = XCB_GW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+    mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = pScreen->white_pixel;
     values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS;
     xcb_create_window(pConn,                    // connection
@@ -55,7 +55,7 @@ int main(void){
                         10,                     // boarder width
                         XCB_WINDOW_CLASS_INPUT_OUTPUT,  // class
                         pScreen->root_visual,   // visual
-                        mask, values)           // masks
+                        mask, values);           // masks
                         
     // set the title of the window
     xcb_change_property(pConn, XCB_PROP_MODE_REPLACE, window,
@@ -77,7 +77,7 @@ int main(void){
         case XCB_EXPOSE:
             {
                 xcb_rectangle_t rect = {20, 20, 60, 80};
-                xcb_poly_fill_rectangle(pConn, window, foreground, 1, &rect)
+                xcb_poly_fill_rectangle(pConn, window, foreground, 1, &rect);
                 xcb_flush(pConn);
             }
             break;
