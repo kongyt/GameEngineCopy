@@ -23,7 +23,7 @@ static bool isExtensionSupported(const char*extList, const char* extension)
 	const char* where, *terminator;
 	
 	// Extension names should not have spaces.
-	where = strchar(extension, ' ');
+	where = strchr(extension, ' ');
 	if(where || *extension == '\0'){
 		return false;
 	}
@@ -149,9 +149,9 @@ int main(void){
 	default_screen = DefaultScreen(display);
 	
 	// Query framebuffer configurations
-	fb_configs = glxChooseFBConfig(display, default_screen, visual_attribs, &num_fb_configs);
+	fb_configs = glXChooseFBConfig(display, default_screen, visual_attribs, &num_fb_configs);
 	if(!fb_configs || num_fb_configs == 0){
-		fprintf(stderr, "glXGetFBConfigs failed\n');
+		fprintf(stderr, "glXGetFBConfigs failed\n");
 		return -1;
 	}
 	
@@ -160,10 +160,10 @@ int main(void){
 		int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
 		
 		for(int i = 0; i < num_fb_configs; i++){
-			XVisualInfo* vi = glxGetVisualFromFBConfig(display, fb_configs[i]);
+			XVisualInfo* vi = glXGetVisualFromFBConfig(display, fb_configs[i]);
 			if(vi){
 				int samp_buf, samples;
-				glXGetFBConfigAttrib(display, fb_configs[i], GLX_SAMPLE_BUFFERS, &sampe_buf);
+				glXGetFBConfigAttrib(display, fb_configs[i], GLX_SAMPLE_BUFFERS, &samp_buf);
 				glXGetFBConfigAttrib(display, fb_configs[i], GLX_SAMPLES, &samples);
 				
 				printf(" Matching fbconfig %d, visual ID 0x%lx: SAMPLE_BUFFERS = %d,"
