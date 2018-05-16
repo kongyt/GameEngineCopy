@@ -14,6 +14,9 @@
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
+const uint32_t SCREEN_WIDTH = 960;
+const uint32_t SCREEN_HEIGHT = 480;
+
 // global declarations
 IDXGISwapChain			*g_pSwapchain	= nullptr;	// the pointer to the swap chain interface
 ID3D11Device			*g_pDev			= nullptr;	// the pointer to our Direct3D device interface
@@ -137,26 +140,75 @@ void InitGraphics()
 HRESULT CreateGraphicsResources(HWND hWnd)
 {
     HRESULT hr = S_OK;
-    if(pRenderTarget == nullptr)
+    if(g_pSwapchain == nullptr)
     {
-        RECT rc;
-        GetClientRect(hWnd, &rc);
+        // create a struct to hold information about the swap chain
+        DXGI_SWAP_CHAIN_DESC scd;
         
-        D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+        // clear out the struct for use
+        ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
         
-        hr = pFactory->CreateHwndRenderTarget(
-            D2D1::RenderTargetProperties(),
-            D2D1::HwndRenderTargetProperties(hWnd, size),
-            &pRenderTarget);
-            
-        if(SUCCEEDED(hr))
-        {
-            hr = pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::LightSlateGray), &pLightSlateGrayBrush);
+        // fill the swap chain description struct
+        scd.BufferCount = 1;                    // one back buffer
+        scd.BufferDesc.Width = SCREEN_WIDTH;
+        scd.BufferDesc.Height = SCREEN_HEIGHT;
+        scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // use 32-bit color
+        scd.BufferDesc.RefreshRate.Numerator = 60;
+        scd.BufferDesc.RefreshRate.Denominator = 1;
+        scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;  // how swap chain is to be used
+        scd.OutputWindow = hWnd;                    // the window to be used
+        scd.SampleDesc.Count = 4;                   // how many multisamples
+        scd.Windowed = TRUE;                        // windowed/full-screen mode
+        scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // allow full-screen switching
+        
+        const D3D_FEATURE_LEVEL FeatureLevels[] = {
+            D3D_FEATURE_LEVEL_11_1,
+            D3D_FEATURE_LEVEL_11_0,
+            D3D_FEATURE_LEVEL_10_1,
+            D3D_FEATURE_LEVEL_10_0,
+            D3D_FEATURE_LEVEL_9_3,
+            D3D_FEATURE_LEVEL_9_2,
+            D3D_FEATURE_LEVEL_9_1
+        };
+        
+        D3D_FEATURE_LEVEL FeatureLevelSupported;
+        
+        HRESULT hr = S_OK;
+        
+        // create a device, device context and swap chain using the information in the scd struct
+        hr = D3D11CreateDeviceAndSwapChain(NULL,
+                                        D3D_DRIVER_TYPE_HARDWARE,
+                                        NULL,
+                                        0,
+                                        FeatureLevels,
+                                        _countof(FeatureLevels),
+                                        D3D11_SDK_VERSION,
+                                        &scd,
+                                        &g_pSwapchain,
+                                        &g_pDev,
+                                        &FeatureLevelSupported,
+                                        &g_pDevcon);
+        
+        if(hr == E_INVALIDARG){
+            hr = D3D11CreateDeviceAndSwapChain(NULL,
+                                        D3D_DRIVER_TYPE_HARDWARE,
+                                        NULL,
+                                        0,
+                                        &FeatureLevelSupported,
+                                        1, 
+                                        D3D11_SDK_VERSION,
+                                        &scd,
+                                        &g_pSwapchain,
+                                        &g_pDev,
+                                        NULL,
+                                        &g_pDevcon);
         }
         
-        if(SUCCEEDED(hr))
-        {
-            hr = pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::CornflowerBlue), &pCornflowerBlueBrush);            
+        if(hr == S_OK){
+            CreateRenderTarget();
+            SetViewPort();
+            InitPipeline();
+            InitGraphics();
         }
     }
     
@@ -166,11 +218,40 @@ HRESULT CreateGraphicsResources(HWND hWnd)
 
 void DiscardGraphicsResources()
 {
-    SafeRelease(&pRenderTarget);
-    SafeRelease(&pLightSlateGrayBrush);
-    SafeRelease(&pCornflowerBlueBrush);    
+    SafeRelease(&g_pLayout);
+    SafeRelease(&g_pVS);
+    SafeRelease(&g_pPS);
+    SafeRelease(&g_pVBuffer);
+    SafeRelease(&g_pSwapchain);
+    SafeRelease(&g_pRTView);
+    SafeRelease(&g_pDev);
+    SafeRelease(&g_pDevcon);
 }
 
+// this is the function used to render a single frame
+void RenderFrame()
+{
+    // clear the back buffer to a deep blue
+    const FLOAT clearColor[] = {0.0f, 0.2f, 0.4f, 1.0f};
+    g_pDevcon->ClearRenderTargetView(g_pRTView, clearColor);
+    
+    // do 3D rendering on the back buffer here
+    {
+        // select which vertex buffer to display
+        UINT stride = sizeof(VERTEX);
+        UINT offset = 0;
+        g_pDevcon->IASetVertexBuffers(0, 1, &g_pVBuffer, &stride, &offset);
+        
+        // select which primtive type we are using
+        g_pDevcon->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        
+        // draw the vertex buffer to the back buffer
+        g_pDevcon->Draw(3, 0);        
+    }
+    
+    g_pSwapchain->Present(0, 0);
+    
+}
 
 
 // the WindowProc function prototype
@@ -191,9 +272,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
     // this struct holds information for the window class
     WNDCLASSEX wc;
     
-    // initialize COM
-    if(FAILED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE))) return -1;
-    
     // clear out the window class for use
     ZeroMemory(&wc, sizeof(WNDCLASSEX));
     
@@ -212,12 +290,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
     // create the window and use the result as the handle
     hWnd = CreateWindowEx(0,
                         _T("WindowClass1"),     // name of the window class
-                        _T("Hello, Engine![Direct 2D]"),   // title of the window
+                        _T("Hello, Engine![Direct 3D]"),   // title of the window
                         WS_OVERLAPPEDWINDOW,    // window style
                         100,    // x-position of the window
                         100,    // y-position of the window
-                        960,    // width of the window
-                        540,    // height of the window
+                        SCREEN_WIDTH,    // width of the window
+                        SCREEN_HEIGHT,    // height of the window
                         NULL,   // we have no parent window, NULL
                         NULL,   // we aren't using menus, NULL
                         hInstance,  // application handle
@@ -241,8 +319,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
         DispatchMessage(&msg);        
     }
     
-    CoUninitialize();
-    
     // return this part of the WM_QUIT message to Windows
     return msg.wParam;
 }
@@ -257,106 +333,30 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     switch(message)
     {
         case WM_CREATE:
-            if(FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory)))
-            {
-                result = -1;
-                return result;
-            }
-            wasHandled = true;
-            result = 0;
+                wasHandled = true;
             break;
         case WM_PAINT:
-            {
-                HRESULT hr = CreateGraphicsResources(hWnd);
-                if(SUCCEEDED(hr)){
-                    PAINTSTRUCT ps;
-                    BeginPaint(hWnd, &ps);
-                    
-                    // start build GPU draw command
-                    pRenderTarget->BeginDraw();
-                    
-                    // clear the background with white color
-                    pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
-                    
-                    // retrieve the size of drawing area
-                    D2D1_SIZE_F rtSize = pRenderTarget->GetSize();
-                    
-                    // draw a grid background.
-                    int width = static_cast<int>(rtSize.width);
-                    int height = static_cast<int>(rtSize.height);
-                    
-                    for(int x = 0; x < width; x += 10)
-                    {
-                        pRenderTarget->DrawLine(D2D1::Point2F(static_cast<FLOAT>(x), 0.0f), 
-                                                D2D1::Point2F(static_cast<FLOAT>(x), rtSize.height),
-                                                pLightSlateGrayBrush,
-                                                0.5f);
-                    }
-                    
-                    for(int y = 0; y < height; y += 10)
-                    {
-                        pRenderTarget->DrawLine(D2D1::Point2F(0.0f, static_cast<FLOAT>(y)),
-                                                D2D1::Point2F(rtSize.width, static_cast<FLOAT>(y)),
-                                                pLightSlateGrayBrush,
-                                                0.5f);
-                    }
-                    
-                    // draw two rectangles
-                    D2D1_RECT_F rectangle1 = D2D1::RectF(
-                        rtSize.width/2 - 50.0f,
-                        rtSize.height/2 - 50.0f,
-                        rtSize.width/2 + 50.0f,
-                        rtSize.height/2 + 50.0f
-                    );
-                    
-                    D2D1_RECT_F rectangle2 = D2D1::RectF(
-                        rtSize.width/2 - 100.0f,
-                        rtSize.height/2 - 100.0f,
-                        rtSize.width/2 + 100.0f,
-                        rtSize.height/2 + 100.0f
-                    );
-                    
-                    // draw a filled rectangle
-                    pRenderTarget->FillRectangle(&rectangle1, pLightSlateGrayBrush);
-                    
-                    // draw a outline only rectangle
-                    pRenderTarget->DrawRectangle(&rectangle2, pCornflowerBlueBrush);
-                    
-                    // end GPU draw command building
-                    hr = pRenderTarget->EndDraw();
-                    if(FAILED(hr) || hr == D2DERR_RECREATE_TARGET){
-                        DiscardGraphicsResources();
-                    }
-                    EndPaint(hWnd, &ps);
-                }
-                wasHandled = true;
-            }break;
-            
-        case WM_SIZE:
-            if(pRenderTarget != nullptr)
-            {
-                RECT rc;
-                GetClientRect(hWnd, &rc);
-                
-                D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
-                
-                pRenderTarget->Resize(size);
-            }
+            result = CreateGraphicsResources(hWnd);
+            RenderFrame();
             wasHandled = true;
             break;
-        // this message is read when the window is closed
-        case WM_DESTROY:
+            
+        case WM_SIZE:
+            if(g_pSwapchain != nullptr)
             {
                 DiscardGraphicsResources();
-                if(pFactory){
-                    pFactory->Release();
-                    pFactory = nullptr;
-                }
-                // close the application entirely
-                PostQuitMessage(0);
-                result = 0;
-                wasHandled = true;
-            }break;
+            }
+            
+            wasHandled = true;
+            break;
+            
+        // this message is read when the window is closed
+        case WM_DESTROY:
+            DiscardGraphicsResources();
+            PostQuitMessage(0);
+            wasHandled = true;
+            break;
+            
         case WM_DISPLAYCHANGE:
             InvalidateRect(hWnd, nullptr, false);
             wasHandled = true;
