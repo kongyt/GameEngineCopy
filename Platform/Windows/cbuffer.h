@@ -1,4 +1,4 @@
 struct a2v{
-    float position  : POSITION;
+    float3 position  : POSITION;
     float4 color    : COLOR;
 };
