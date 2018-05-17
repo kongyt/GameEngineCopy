@@ -2,6 +2,7 @@
 #define __IApplication_H__
 
 #include "Interface.hpp"
+#include "IRuntimeModule.hpp"
 
 namespace GE{
 	

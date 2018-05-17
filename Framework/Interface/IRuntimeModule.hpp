@@ -5,7 +5,7 @@
 
 namespace GE{
 	Interface IRuntimeModule{
-		public:
+    public:
 		virtual ~IRuntimeModule(){};
 		virtual int Initialize() = 0;
 		virtual void Finalize() = 0;
