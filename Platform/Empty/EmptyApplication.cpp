@@ -1,6 +1,8 @@
 #include "BaseApplication.hpp"
 
 namespace GE{
-	BaseApplication g_App;
+	GfxConfiguration config;
+	
+	BaseApplication g_App(config);
 	IApplication* g_pApp = &g_App;
 }

@@ -3,6 +3,7 @@
 
 #include "Interface.hpp"
 #include "IRuntimeModule.hpp"
+#include "GfxConfiguration.h"
 
 namespace GE{
 	
@@ -15,6 +16,8 @@ namespace GE{
 		virtual void Tick() = 0;
 		
 		virtual bool IsQuit() = 0;		
+		
+		virtual GfxConfiguration& GetConfiguration() = 0;
 	};
 	
 }

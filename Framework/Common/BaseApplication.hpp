@@ -2,20 +2,31 @@
 #define __BaseApplication_H__
 
 #include "IApplication.hpp"
+#include "GfxConfiguration.h"
 
 namespace GE{
 	class BaseApplication : implements IApplication
 	{
 	public:
+		BaseApplication(GfxConfiguration& cfg);
+	
 		virtual int Initialize();
 		virtual void Finalize();
 		
+		// One cycle of the main loop
 		virtual void Tick();
 		virtual bool IsQuit();		
 		
+		inline GfxConfiguration& GetConfiguration() {return m_Config;};
+		
 	protected:
 		// Flag if need quit the main loop of the application
-		bool m_bQuit;
+		static bool m_bQuit;
+		GfxConfiguration m_Config;
+		
+	private:
+		// hide the default construct to enforce a configuration
+		BaseApplication(){};
 	};
 	
 }
