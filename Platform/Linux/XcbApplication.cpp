@@ -84,9 +84,14 @@ void GE::XcbApplication::Finalize()
 	xcb_disconnect(m_pConn);
 }
 
+void OnDraw()
+{
+
+}
+
 void GE::XcbApplication::Tick()
 {
-	xcb_generate_event_t* pEvent;
+	xcb_generic_event_t* pEvent;
 	pEvent = xcb_wait_for_event(m_pConn);
 	switch(pEvent->response_type & ~0x80){
 		case XCB_EXPOSE:

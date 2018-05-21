@@ -93,19 +93,19 @@ int GE::OpenGLApplication::Initialize()
     // Open Xlib Display
     m_pDisplay = XOpenDisplay(NULL);
     if(!m_pDisplay){
-        fprintf(stderr, "Can't open display\n";
+        fprintf(stderr, "Can't open display\n");
         return -1;
     }
     
     default_screen = DefaultScreen(m_pDisplay);
     
-    gladLoadGLX(m_Display, default_screen);
+    gladLoadGLX(m_pDisplay, default_screen);
     
     // Query framebuffer configurations
     fb_configs = glXChooseFBConfig(m_pDisplay, default_screen, visual_attribs, &num_fb_configs);
     if(!fb_configs || num_fb_configs == 0){
-        fprintf(stderr, "glXGetFBConfigs failed\n");
-        retrun -1;
+        printf("glXGetFBConfigs failed\n");
+        return -1;
     }
     
     // pick the FB config/visual with the most samples per pixel
@@ -135,7 +135,7 @@ int GE::OpenGLApplication::Initialize()
             XFree(vi);
         }
         
-        fb_config = fb_config[best_fbc];
+        fb_config = fb_configs[best_fbc];
     }
     
     // Get a visual
@@ -143,7 +143,7 @@ int GE::OpenGLApplication::Initialize()
     printf("Chosen visual ID = 0x%lx\n", vi->visualid);
     
     // establist connection to X server
-    m_pConn = XGetXCBConnection(m_Display);
+    m_pConn = XGetXCBConnection(m_pDisplay);
     if(!m_pConn){
         XCloseDisplay(m_pDisplay);
         fprintf(stderr, "Can't get xcb connection from display\n");
@@ -208,7 +208,7 @@ int GE::OpenGLApplication::Initialize()
             // GLX_CONTEXT_MINOR_VERSION_ARB = 0
             context_attribs[3] = 0;
             
-            ctxErrorOccurred = false
+            ctxErrorOccurred = false;
             
         printf( "Failed to create GL 3.0 context"
                 " ... using old-style GLX context\n" );

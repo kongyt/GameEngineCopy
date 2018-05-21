@@ -2,6 +2,7 @@
 #define __XcbApplication_H__
 
 #include <xcb/xcb.h>
+#include "BaseApplication.hpp"
 
 namespace GE{
 	class XcbApplication : public BaseApplication
