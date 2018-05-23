@@ -25,9 +25,9 @@ namespace GE{
         };
         
         enum AssetSeekBase{
-            SEEK_SET    = 0,    // SEEK_SET
-            SEEK_CUR    = 1,    // SEEK_CUR
-            SEEK_END    = 2,    // SEEK_END
+            ASSET_SEEK_SET    = 0,    // SEEK_SET
+            ASSET_SEEK_CUR    = 1,    // SEEK_CUR
+            ASSET_SEEK_END    = 2,    // SEEK_END
         };
         
         bool AddSearchPath(const char* path);
